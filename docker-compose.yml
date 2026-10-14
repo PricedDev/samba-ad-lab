@@ -1,0 +1,46 @@
+services:
+  samba-dc:
+    build: .
+    image: lab-samba-ad:latest
+    container_name: samba-dc
+    hostname: dc1
+    domainname: ${REALM_LC:-lab.local}
+    env_file: .env
+    restart: unless-stopped
+    cap_add:
+      - SYS_ADMIN
+    dns:
+      - 127.0.0.1
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /var/lib/samba/.seeded && ldapsearch -x -H ldap://127.0.0.1 -s base -b '' namingContexts >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 20s
+    ports:
+      - "${BIND_IP:-127.0.0.1}:53:53/tcp"
+      - "${BIND_IP:-127.0.0.1}:53:53/udp"
+      - "${BIND_IP:-127.0.0.1}:88:88/tcp"
+      - "${BIND_IP:-127.0.0.1}:88:88/udp"
+      - "${BIND_IP:-127.0.0.1}:135:135/tcp"
+      - "${BIND_IP:-127.0.0.1}:${NETBIOS_PORT:-139}:139/tcp"
+      - "${BIND_IP:-127.0.0.1}:389:389/tcp"
+      - "${BIND_IP:-127.0.0.1}:389:389/udp"
+      - "${BIND_IP:-127.0.0.1}:${SMB_PORT:-445}:445/tcp"
+      - "${BIND_IP:-127.0.0.1}:464:464/tcp"
+      - "${BIND_IP:-127.0.0.1}:464:464/udp"
+      - "${BIND_IP:-127.0.0.1}:636:636/tcp"
+      - "${BIND_IP:-127.0.0.1}:3268:3268/tcp"
+      - "${BIND_IP:-127.0.0.1}:3269:3269/tcp"
+    volumes:
+      - samba-data:/var/lib/samba
+      - samba-etc:/etc/samba
+    networks:
+      lab-net:
+        aliases: [samba-dc, dc1.lab.local]
+networks:
+  lab-net:
+    name: lab-net
+volumes:
+  samba-data:
+  samba-etc:
